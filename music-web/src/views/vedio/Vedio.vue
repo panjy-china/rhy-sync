@@ -1,48 +1,70 @@
 <script setup>
-import {ref} from 'vue'
-import {baseURL} from '@/api/request'
-import {formatDate} from '@/utils/format'
-import {getVideoList, getVideoDetail} from '@/api/vedio.js'
+import { ref } from 'vue'
+import { baseURL } from '@/api/request'
+import { formatDate } from '@/utils/format'
+import { getVideoList, getVideoDetail } from '@/api/vedio.js'
+import VideoPlayer from '@/components/VedioPlayer.vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const videos = ref([])
 const queryParams = ref({
   pageNo: 1,
-  size: 7,
+  size: 10,
   search: ''
 })
 const total = ref(0)
 
+// 弹窗控制状态
+const showVideoDialog = ref(false)
+const currentVideoData = ref(null)
+const loading = ref(false)
+
 // 获取视频列表
 const fetchVideos = async () => {
-  const {data} = await getVideoList(queryParams.value)
-  console.log(data)
-  videos.value = data.records
-  total.value = data.total
+  try {
+    const { data } = await getVideoList(queryParams.value)
+    videos.value = data.records
+    total.value = data.total
+  } catch (error) {
+    ElMessage.error('获取视频列表失败')
+  }
 }
+
 fetchVideos()
 
 // 分页
-const handlePageChange = (pageNo, size) => {
+const handlePageChange = (pageNo) => {
   queryParams.value.pageNo = pageNo
-  queryParams.value.size = size
   fetchVideos()
 }
 
 // 搜索
 const handleSearch = () => {
-  queryParams.value.pageNo = 1 // 重置页码
+  queryParams.value.pageNo = 1
   fetchVideos()
 }
 
-// 视频播放列表
-const videoQueue = ref([])
-
 // 播放视频
 const playVideo = async (row) => {
-  const {data} = await getVideoDetail(row.id)
-  data.vUrl = baseURL + data.vUrl
-  data.vImg = baseURL + data.vImg // 视频封面
-  videoQueue.value.unshift(data) // 添加到播放队列
+  try {
+    loading.value = true
+    const { data } = await getVideoDetail(row.id)
+
+    if (!data.vurl) {
+      throw new Error('无效的视频URL')
+    }
+
+    currentVideoData.value = {
+      vUrl: baseURL + data.vurl,
+      vImg: data.vimg || '',
+      vName: row.vname || '未命名视频'
+    }
+    showVideoDialog.value = true
+  } catch (error) {
+    ElMessage.error('加载视频失败: ' + error.message)
+  } finally {
+    loading.value = false
+  }
 }
 
 // 编辑视频
@@ -60,6 +82,8 @@ const deleteVideo = (row) => {
     // 调用删除接口...
     ElMessage.success('删除成功')
     fetchVideos() // 刷新列表
+  }).catch(() => {
+    // 取消删除
   })
 }
 </script>
@@ -84,8 +108,8 @@ const deleteVideo = (row) => {
       </div>
     </template>
 
-    <el-table :data="videos" style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80"/>
+    <el-table :data="videos" style="width: 100%" v-loading="loading">
+      <el-table-column prop="id" label="ID" width="80" />
       <el-table-column label="视频名称">
         <template #default="{ row }">
           <el-link type="primary" @click="playVideo(row)">{{ row.vname }}</el-link>
@@ -96,8 +120,8 @@ const deleteVideo = (row) => {
           {{ row.vauthor }}
         </template>
       </el-table-column>
-      <el-table-column label="播放量" prop="vplayback" width="100"/>
-      <el-table-column label="上传时间" prop="vcreatetime" :formatter="formatDate" width="180"/>
+      <el-table-column label="播放量" prop="vplayback" width="100" />
+      <el-table-column label="上传时间" prop="vcreatetime" :formatter="formatDate" width="180" />
       <el-table-column label="操作" width="180">
         <template #default="{ row }">
           <el-button size="small" @click="editVideo(row)">编辑</el-button>
@@ -115,14 +139,27 @@ const deleteVideo = (row) => {
           @current-change="handlePageChange"
       />
     </div>
-  </el-card>
 
-  <!-- 视频播放器组件 -->
-  <VideoPlayer
-      :videos="videoQueue"
-      :auto-play="true"
-      style="margin-top: 20px"
-  />
+    <!-- 视频播放弹窗 -->
+    <el-dialog
+        v-model="showVideoDialog"
+        :title="currentVideoData?.vName || '视频播放'"
+        width="80%"
+        top="5vh"
+        :close-on-click-modal="false"
+        @closed="currentVideoData = null"
+    >
+      <VideoPlayer
+          v-if="showVideoDialog && currentVideoData"
+          :videos="[currentVideoData]"
+          :auto-play="true"
+          style="height: 60vh"
+      />
+      <template #footer>
+        <el-button @click="showVideoDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
+  </el-card>
 </template>
 
 <style scoped>

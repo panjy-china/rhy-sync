@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   videos: {
@@ -8,8 +9,8 @@ const props = defineProps({
     default: () => [],
     validator: (value) => {
       return value.every(video => {
-        return video.vName && video.vUrl;
-      });
+        return video.vUrl && typeof video.vUrl === 'string'
+      })
     }
   },
   autoPlay: {
@@ -21,177 +22,203 @@ const props = defineProps({
     default: 0.7,
     validator: (value) => value >= 0 && value <= 1
   }
-});
+})
 
-const videoPlayer = ref(null);
-const playerContainer = ref(null);
+const emit = defineEmits(['error'])
+
+const videoPlayer = ref(null)
+const playerContainer = ref(null)
 
 // 播放器状态
-const isPlaying = ref(false);
-const isMuted = ref(false);
-const currentTime = ref(0);
-const duration = ref(0);
-const volume = ref(props.initialVolume);
-const currentVideoIndex = ref(0);
-const isFullscreen = ref(false);
-const isVisible = ref(false);
-const showControls = ref(true);
-let controlsTimeout = null;
+const isPlaying = ref(false)
+const isMuted = ref(false)
+const currentTime = ref(0)
+const duration = ref(0)
+const volume = ref(props.initialVolume)
+const currentVideoIndex = ref(0)
+const isFullscreen = ref(false)
+const showControls = ref(true)
+let controlsTimeout = null
 
 // 当前视频
 const currentVideo = computed(() => {
-  return props.videos[currentVideoIndex.value] || {};
-});
+  return props.videos[currentVideoIndex.value] || {}
+})
 
 // 进度百分比
 const progressPercentage = computed(() => {
-  return (currentTime.value / duration.value) * 100 || 0;
-});
+  return (currentTime.value / duration.value) * 100 || 0
+})
 
 // 加载新视频
-const loadNewVideo = () => {
-  if (props.videos.length === 0) {
-    videoPlayer.value.src = '';
-    return;
+const loadNewVideo = async () => {
+  if (props.videos.length === 0 || !currentVideo.value.vUrl) {
+    videoPlayer.value.src = ''
+    return
   }
 
-  // 确保索引在有效范围内
-  if (currentVideoIndex.value >= props.videos.length) {
-    currentVideoIndex.value = props.videos.length - 1;
-  } else if (currentVideoIndex.value < 0) {
-    currentVideoIndex.value = 0;
+  // 确保URL有效
+  if (!currentVideo.value.vUrl.startsWith('http')) {
+    console.error('无效的视频URL:', currentVideo.value.vUrl)
+    emit('error', '无效的视频URL')
+    return
   }
 
-  isPlaying.value = false;
-  videoPlayer.value.src = currentVideo.value.vUrl;
+  try {
+    isPlaying.value = false
+    videoPlayer.value.src = ''
+    await nextTick()
 
-  if (props.autoPlay) {
-    setTimeout(() => {
-      togglePlay();
-    }, 100);
+    videoPlayer.value.src = currentVideo.value.vUrl
+    videoPlayer.value.load()
+
+    if (props.autoPlay) {
+      await videoPlayer.value.play()
+      isPlaying.value = true
+    }
+  } catch (error) {
+    console.error('视频加载失败:', error)
+    emit('error', '视频加载失败')
+    ElMessage.error('视频加载失败: ' + error.message)
   }
-};
+}
 
 // 播放/暂停
-const togglePlay = () => {
-  if (isPlaying.value) {
-    videoPlayer.value.pause();
-  } else {
-    videoPlayer.value.play().catch(e => {
-      console.error('播放失败:', e);
-    });
+const togglePlay = async () => {
+  try {
+    if (isPlaying.value) {
+      videoPlayer.value.pause()
+    } else {
+      await videoPlayer.value.play()
+    }
+    isPlaying.value = !isPlaying.value
+    resetControlsTimer()
+  } catch (error) {
+    console.error('播放控制失败:', error)
+    emit('error', '播放控制失败')
   }
-  isPlaying.value = !isPlaying.value;
-  isVisible.value = true;
-};
-
-// 上一视频
-const prevVideo = () => {
-  currentVideoIndex.value = (currentVideoIndex.value - 1 + props.videos.length) % props.videos.length;
-};
-
-// 下一视频
-const nextVideo = () => {
-  currentVideoIndex.value = (currentVideoIndex.value + 1) % props.videos.length;
-};
+}
 
 // 静音/取消静音
 const toggleMute = () => {
-  isMuted.value = !isMuted.value;
-  videoPlayer.value.muted = isMuted.value;
-};
+  isMuted.value = !isMuted.value
+  videoPlayer.value.muted = isMuted.value
+}
 
 // 设置音量
 const setVolume = (e) => {
-  const volumeBar = e.currentTarget;
-  const clickPosition = e.clientX - volumeBar.getBoundingClientRect().left;
-  const newVolume = clickPosition / volumeBar.clientWidth;
-  volume.value = Math.max(0, Math.min(1, newVolume));
-  videoPlayer.value.volume = volume.value;
-  isMuted.value = false;
-  videoPlayer.value.muted = false;
-};
+  const volumeBar = e.currentTarget
+  const clickPosition = e.clientX - volumeBar.getBoundingClientRect().left
+  const newVolume = clickPosition / volumeBar.clientWidth
+  volume.value = Math.max(0, Math.min(1, newVolume))
+  videoPlayer.value.volume = volume.value
+  isMuted.value = false
+  videoPlayer.value.muted = false
+}
 
 // 跳转进度
 const seek = (e) => {
-  const progressBar = e.currentTarget;
-  const clickPosition = e.clientX - progressBar.getBoundingClientRect().left;
-  const newTime = (clickPosition / progressBar.clientWidth) * duration.value;
-  videoPlayer.value.currentTime = newTime;
-};
+  const progressBar = e.currentTarget
+  const clickPosition = e.clientX - progressBar.getBoundingClientRect().left
+  const newTime = (clickPosition / progressBar.clientWidth) * duration.value
+  videoPlayer.value.currentTime = newTime
+}
 
 // 更新时间
 const updateTime = () => {
-  currentTime.value = videoPlayer.value.currentTime;
-};
+  currentTime.value = videoPlayer.value.currentTime
+}
 
 // 更新总时长
 const updateDuration = () => {
-  duration.value = videoPlayer.value.duration;
-};
+  duration.value = videoPlayer.value.duration
+}
 
 // 视频结束处理
 const handleVideoEnd = () => {
-  isPlaying.value = false;
-  if (props.videos.length > 1) {
-    nextVideo();
+  isPlaying.value = false
+}
+
+// 视频错误处理
+const handleVideoError = () => {
+  const error = videoPlayer.value.error
+  let message = '视频播放错误'
+
+  if (error) {
+    switch(error.code) {
+      case MediaError.MEDIA_ERR_ABORTED:
+        message = '视频加载被中止'
+        break
+      case MediaError.MEDIA_ERR_NETWORK:
+        message = '网络错误导致视频加载失败'
+        break
+      case MediaError.MEDIA_ERR_DECODE:
+        message = '视频解码错误'
+        break
+      case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+        message = '视频格式不支持或源文件损坏'
+        break
+    }
   }
-};
+
+  emit('error', message)
+  ElMessage.error(message)
+}
 
 // 格式化时间 (秒 -> mm:ss)
 const formatTime = (time) => {
-  if (isNaN(time)) return '00:00';
+  if (isNaN(time)) return '00:00'
 
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
+  const minutes = Math.floor(time / 60)
+  const seconds = Math.floor(time % 60)
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+}
 
 // 切换全屏
 const toggleFullscreen = () => {
   if (!isFullscreen.value) {
     playerContainer.value.requestFullscreen?.() ||
     playerContainer.value.webkitRequestFullscreen?.() ||
-    playerContainer.value.msRequestFullscreen?.();
+    playerContainer.value.msRequestFullscreen?.()
   } else {
     document.exitFullscreen?.() ||
     document.webkitExitFullscreen?.() ||
-    document.msExitFullscreen?.();
+    document.msExitFullscreen?.()
   }
-};
+}
 
 // 控制条显示/隐藏
 const resetControlsTimer = () => {
-  showControls.value = true;
-  clearTimeout(controlsTimeout);
+  showControls.value = true
+  clearTimeout(controlsTimeout)
   controlsTimeout = setTimeout(() => {
     if (isPlaying.value) {
-      showControls.value = false;
+      showControls.value = false
     }
-  }, 3000);
-};
+  }, 3000)
+}
 
 // 监听当前视频变化
-watch(currentVideoIndex, loadNewVideo);
-watch(() => props.videos, loadNewVideo, { deep: true });
+watch(currentVideoIndex, loadNewVideo)
+watch(() => props.videos, loadNewVideo, { deep: true })
 
 // 初始化
 onMounted(() => {
   if (props.videos.length > 0) {
-    loadNewVideo();
+    loadNewVideo()
   }
 
   document.addEventListener('fullscreenchange', () => {
-    isFullscreen.value = !!document.fullscreenElement;
-  });
+    isFullscreen.value = !!document.fullscreenElement
+  })
 
   document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
-      e.preventDefault();
-      togglePlay();
+      e.preventDefault()
+      togglePlay()
     }
-  });
-});
+  })
+})
 </script>
 
 <template>
@@ -199,6 +226,7 @@ onMounted(() => {
       class="video-player-container"
       ref="playerContainer"
       @mousemove="resetControlsTimer"
+      @mouseleave="showControls = false"
       @click="resetControlsTimer"
   >
     <!-- 视频元素 -->
@@ -208,7 +236,9 @@ onMounted(() => {
         @timeupdate="updateTime"
         @ended="handleVideoEnd"
         @loadedmetadata="updateDuration"
+        @error="handleVideoError"
         @click="togglePlay"
+        :poster="currentVideo.vImg"
     ></video>
 
     <!-- 视频封面 -->
@@ -262,7 +292,7 @@ onMounted(() => {
 
     <!-- 视频标题 -->
     <div class="video-title" :class="{ 'title-visible': showControls || !isPlaying }">
-      {{ currentVideo.vName }}
+      {{ currentVideo.vName || '未命名视频' }}
     </div>
   </div>
 </template>
@@ -284,6 +314,7 @@ onMounted(() => {
   height: 100%;
   object-fit: contain;
   display: block;
+  background-color: #000;
 }
 
 /* 视频封面 */
@@ -299,6 +330,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  background-color: #000;
 }
 
 .play-button {
@@ -423,6 +455,9 @@ onMounted(() => {
   font-size: 14px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
   transition: top 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .title-visible {
