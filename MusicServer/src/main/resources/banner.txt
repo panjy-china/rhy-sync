@@ -1,0 +1,11 @@
+ ___  ____      ______      ______
+|_  ||_  _|   .' ___  |   .' ___  |
+  | |_/ /    / .'   \_|  / .'   \_|
+  |  __'.    | |   ____  | |
+ _| |  \ \_  \ `.___]  | \ `.___.'\
+|____||____|  `._____.'   `.____ .'
+Powered by KGC - 烟台  Technology Team
+
+:: Spring Boot :: (v${spring-boot.version})
+:: Java :: ${java.version} (${java.vendor} ${java.vm.version})
+:: PID :: ${pid}
