@@ -41,8 +41,8 @@ const singersMap = ref({
 });
 const playingSong = async row => {
   const { data } = await getSongDetail(row.id)
-  data.url = baseURL + data.url
-  data.pic = baseURL + data.pic
+  data.url = baseURL + '/r' + data.url
+  data.pic = baseURL + '/r' + data.pic
   console.log(data);
   songsList.value.unshift(data)
   

@@ -16,4 +16,4 @@ mybatis-plus:
 
 # 文件存储路径
 file:
-  upload-dir: D:\Study\JavaEE\MusicServer\assets\images\singerPic
+  upload-dir: D:\mres\images\singerPic

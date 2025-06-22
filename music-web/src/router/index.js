@@ -25,11 +25,12 @@ const router = createRouter({
           path: '/singer',
           name: 'singer',
           component: () => import('@/views/singer/Singer.vue'),
-        },{
-          path: '/vedio',
-          name: 'vedio',
-          component: () => import('@/views/vedio/Vedio.vue'),
-        }
+        },
+       {
+          path: '/comment',
+          name: 'comment',
+          component: () => import('@/views/comment/Comment.vue'),
+       },
       ],
     },
   ],

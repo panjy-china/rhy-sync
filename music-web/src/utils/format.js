@@ -8,3 +8,7 @@ export const formatDate = (row, column, cellValue) => {
 export const formatDate2 = (date) => {
    return dayjs(date).format('YYYY-MM-DD')
 }
+
+export const formatDate3 = (date) => {
+   return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+}

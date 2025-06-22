@@ -33,32 +33,36 @@ const handleCommand = (command) => {
             </el-icon>
             <span>音频视频</span>
           </template>
+
           <el-menu-item index="/song">
             <el-icon>
               <VideoPlay />
             </el-icon>
             <span>音频管理</span>
           </el-menu-item>
-          <el-menu-item index="/vedio">
+
+          <el-menu-item index="1-2">
             <el-icon>
               <VideoCamera />
             </el-icon>
             <span>视频管理</span>
           </el-menu-item>
         </el-sub-menu>
+
         <el-menu-item index="/singer">
           <el-icon>
             <VideoPlay />
           </el-icon>
           <span>歌手管理</span>
         </el-menu-item>
+        
         <el-menu-item index="3">
           <el-icon>
             <VideoPlay />
           </el-icon>
           <span>用户管理</span>
         </el-menu-item>
-        <el-menu-item index="4">
+        <el-menu-item index="/comment">
           <el-icon>
             <VideoPlay />
           </el-icon>
