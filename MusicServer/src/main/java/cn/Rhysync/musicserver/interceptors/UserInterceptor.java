@@ -33,25 +33,25 @@ public class UserInterceptor implements HandlerInterceptor {
         }
         //获取令牌token
         String token = request.getHeader("Authorization");
-        if(StrUtil.isBlank(token)) {
+        if (StrUtil.isBlank(token)) {
             //response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-            String res= JSON.toJSONString(ResultUtil.returnResult(ResultEnum.FAIL_NOT_HAVE_PERMISSION));
+            String res = JSON.toJSONString(ResultUtil.returnResult(ResultEnum.FAIL_NOT_HAVE_PERMISSION));
             response.getWriter().println(res);
             return false;
         }
         //令牌是否过期
-        if(JwtUtil.isExpiration(token)) {
-            String res= JSON.toJSONString(ResultUtil.returnResult(ResultEnum.FAIL_TOKEN_EXPIRED));
+        if (JwtUtil.isExpiration(token)) {
+            String res = JSON.toJSONString(ResultUtil.returnResult(ResultEnum.FAIL_TOKEN_EXPIRED));
             response.getWriter().println(res);
             return false;
         }
         Claims claims = JwtUtil.parseJWT(token);
         //令牌为空
-        if(claims == null) {
-            String res= JSON.toJSONString(ResultUtil.returnResult(ResultEnum.FAIL_NOT_HAVE_PERMISSION));
+        if (claims == null) {
+            String res = JSON.toJSONString(ResultUtil.returnResult(ResultEnum.FAIL_NOT_HAVE_PERMISSION));
             response.getWriter().println(res);
             return false;
-        };
+        }
 
         return true;
     }

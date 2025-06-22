@@ -30,7 +30,7 @@ public class VedioController {
     public Result getVedioPage(
             @RequestParam(value = "pageNo", defaultValue = "1") int pageNo,
             @RequestParam(value = "size", defaultValue = "5") int size,
-            @RequestParam(value = "search", required = false)String search) {
+            @RequestParam(value = "search", required = false) String search) {
         System.out.println("pageNo---:"+pageNo);
         QueryWrapper<Vedio> wrapper = new QueryWrapper<>();
         wrapper.like(search != null, "v_name", search);
