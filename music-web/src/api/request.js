@@ -25,22 +25,15 @@ export function reqeust(config) {
     }
   );
   // 响应拦截器
-  instance.interceptors.response.use(
-    (res) => {
-      if (res.data.code == 0) {
-        return res.data;
-      }
-      // 业务请求异常
-      ElMessage.error(res.data.msg ?? '服务异常');
-      if (res.data.code == 1008) {
-        const userStore = useUserStore()
-        userStore.setToken(null)
-        router.push({ name: 'login' })
-      }
-    },
-    (err) => {
-      return Promise.reject(err);
-    }
+    instance.interceptors.response.use(
+        (res) => {
+            // 确保返回完整的响应数据
+            return res.data;  // 修改这里，直接返回res.data
+        },
+        (err) => {
+            ElMessage.error(err.response?.data?.msg || err.message || '请求失败');
+            return Promise.reject(err);
+        }
   );
 
 
@@ -63,6 +56,26 @@ export function post(url, data) {
       'Content-Type': 'application/json'
     }
   });
+}
+export function del(url, params) {
+    return reqeust({
+        url,
+        method: "delete",
+        params,
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+}
+export function put(url, data) {  // 参数名改为data
+    return reqeust({
+        url,
+        method: "put",
+        data: JSON.stringify(data), // 使用传入的data参数
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
 }
 
 export { baseURL };
