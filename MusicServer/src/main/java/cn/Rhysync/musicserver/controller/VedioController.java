@@ -25,7 +25,7 @@ public class VedioController {
      * 服务对象
      */
     private final IVedioService vedioService;
-    
+
     @GetMapping("page")
     public Result getVedioPage(
             @RequestParam(value = "pageNo", defaultValue = "1") int pageNo,
@@ -47,8 +47,17 @@ public class VedioController {
         return ResultUtil.returnDataSuccess(vedio);
     }
 
-    @GetMapping("del")
-    public Result delSong(Integer id){
+    @PutMapping("update")
+    public Result updateVideo(@RequestBody Vedio vedio) {
+        boolean b = vedioService.updateById(vedio);
+        if(!b){
+            return ResultUtil.returnFail("修改失败");
+        }
+        return ResultUtil.returnSuccess("修改成功");
+    }
+
+    @DeleteMapping("del")
+    public Result delSong(@RequestParam(value = "id") Integer id){
         boolean b = vedioService.removeById(id);
         if(!b){
             return ResultUtil.returnFail("删除失败");
@@ -57,4 +66,3 @@ public class VedioController {
     }
 
 }
-

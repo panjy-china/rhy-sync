@@ -40,6 +40,11 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/r/img/**")
                 .addResourceLocations(file_path+"images"+ File.separator);
 
+
+        //映射本地图片
+        registry.addResourceHandler("/r/vedio/**")
+                .addResourceLocations(file_path+"vedio"+ File.separator);
+
     }
     //跨域配置
     @Override
